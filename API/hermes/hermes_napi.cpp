@@ -4736,6 +4736,10 @@ napi_status NapiEnvironment::callFunction(
     RETURN_FAILURE_IF_FALSE(!callRes->get().isEmpty());
     return scope.setResult(callRes->get());
   }
+
+  bool unusedResult;
+  drainMicrotasks(0, &unusedResult);
+
   return clearLastNativeError();
 }
 
@@ -4811,6 +4815,10 @@ napi_status NapiEnvironment::createNewInstance(
   // 13.2.2.10:
   //    Return obj
   vm::HermesValue resultValue = callRes->get();
+
+  bool unusedResult;
+  drainMicrotasks(0, &unusedResult);
+
   return scope.setResult(
       resultValue.isObject() ? std::move(resultValue)
                              : thisHandle.getHermesValue());
@@ -6369,7 +6377,10 @@ napi_status NapiEnvironment::runScript(
   // To delete prepared script after execution.
   std::unique_ptr<NapiScriptModel> scriptModel{
       reinterpret_cast<NapiScriptModel *>(preparedScript)};
-  return scope.setResult(runPreparedScript(preparedScript, result));
+  auto rv = scope.setResult(runPreparedScript(preparedScript, result));
+  bool unusedResult;
+  drainMicrotasks(0, &unusedResult);
+  return rv;
 }
 
 napi_status NapiEnvironment::createPreparedScript(
